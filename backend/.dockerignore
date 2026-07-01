@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+*.pyc
+.git/
+tests/
+uvicorn_out.log
+uvicorn_err.log
