@@ -15,6 +15,10 @@ RUN uv sync --locked --no-install-project --no-dev
 COPY . .
 RUN uv sync --locked --no-dev
 
+RUN useradd --create-home --shell /usr/sbin/nologin appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8000
 
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
