@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+/* Ручной переключатель темы (класс .dark на <html>), а не только
+   системная prefers-color-scheme — см. ThemeContext.tsx */
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  margin: 0;
+}
