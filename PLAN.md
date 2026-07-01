@@ -68,7 +68,7 @@ element/
 │   │   ├── models/               # SQLAlchemy: lot, lot_set, booking, application
 │   │   ├── schemas/               # Pydantic DTO, общие для REST и RPC
 │   │   ├── repositories/          # чистый доступ к БД, без бизнес-правил
-│   │   ├── services/              # бизнес-логика: feed_parser, lots, bookings, applications
+│   │   ├── services/              # бизнес-логика: feed_parser, lots, lot_sets, bookings, applications, auth
 │   │   ├── api/
 │   │   │   ├── rest/               # REST-роутеры — тонкий адаптер над services/
 │   │   │   └── rpc/                # JSON-RPC dispatcher — тот же тонкий адаптер над services/
@@ -99,11 +99,11 @@ element/
 | Файл | Git | Содержит | Примеры переменных |
 |---|---|---|---|
 | `.env` (из `.env.example`) | игнорируется | секреты, которые задаёт пользователь | `POSTGRES_PASSWORD`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `JWT_SECRET_KEY` |
-| `config/app.env` | коммитится | технические параметры с осмысленными дефолтами | `POSTGRES_HOST=db`, `POSTGRES_PORT=5432`, `POSTGRES_DB=element`, `POSTGRES_USER=element`, `LOG_LEVEL=info`, `JWT_EXPIRE_MINUTES=60`, `CORS_ORIGINS=...` |
+| `config/app.env` | коммитится | технические параметры с осмысленными дефолтами | `POSTGRES_HOST=db`, `POSTGRES_DB=element`, `POSTGRES_USER=element`, `LOG_LEVEL=info`, `JWT_EXPIRE_MINUTES=60`, `CORS_ORIGINS=...` |
 
 Механика:
 - Оба сервиса в `docker-compose.yml` подключают оба файла: `env_file: [config/app.env, .env]`.
-- Каждый параметр существует **ровно в одном месте**. Порт БД — переменная `POSTGRES_PORT` в `config/app.env`, используется и в маппинге `ports:` сервиса `db`, и передаётся в `backend` — меняешь один раз, подхватывается везде по имени переменной.
+- Каждый параметр существует **ровно в одном месте**. Порт БД — переменная `POSTGRES_PORT` (физически в `.env`, см. нюанс ниже), используется и в маппинге `ports:` сервиса `db`, и передаётся в `backend` — меняешь один раз, подхватывается везде по имени переменной.
 - `DATABASE_URL` нигде не хранится готовой строкой — `Settings` (pydantic-settings) собирает её на лету из частей (`HOST/PORT/USER/PASSWORD/DB`). Хранение готовой строки отдельно = порт задваивается — ровно та ловушка, о которой предупреждает ТЗ.
 
 **Нюанс для отчёта:** Docker Compose делает `${VAR}`-подстановку в самом YAML (например, `ports: - "${POSTGRES_PORT}:5432"`) только из корневого `.env`, а не из произвольных `env_file:`. Поэтому `POSTGRES_PORT` физически лежит в `.env`, хотя не является секретом — это осознанный, проговорённый в отчёте компромисс, а не недосмотр.
@@ -118,7 +118,7 @@ element/
 - [x] REST-роутеры + JSON-RPC dispatcher поверх `services/`
 - [x] Auth админки (JWT против конфига)
 - [x] Frontend: публичная витрина + админка + переключатель транспорта
-- [x] Тесты на ключевую логику (бронирование, парсинг фида) — 27 тестов, unit + integration
+- [x] Тесты на ключевую логику (бронирование, парсинг фида, валидация контактов, REST/RPC API) — 39 тестов, unit + integration
 - [x] Отчёт в README.md: сравнение REST/JSON-RPC, обоснование конфигурации, AI-рассуждение про определение мотивации покупателя (без реализации)
 - [x] Сквозная проверка через `docker compose up` (нашла и исправила реальную конфигурационную ловушку — см. README, раздел «Конфигурация»)
 
