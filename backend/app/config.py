@@ -27,6 +27,11 @@ class Settings(BaseSettings):
 
     max_feed_size_mb: int = 64
 
+    # Telegram-алерты об ошибках (опционально). Пока не заданы — core/alerts.py
+    # работает как заглушка и просто логирует событие вместо отправки.
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
+
     @property
     def database_url(self) -> str:
         return (

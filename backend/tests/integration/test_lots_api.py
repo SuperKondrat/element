@@ -1,11 +1,13 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.helpers import build_feed_xml, build_flat_xml
+from tests.helpers import TEST_ADMIN_PASSWORD, TEST_ADMIN_USERNAME, build_feed_xml, build_flat_xml
 
 
 def _login(client: TestClient) -> str:
-    response = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+    response = client.post(
+        "/api/auth/login", json={"username": TEST_ADMIN_USERNAME, "password": TEST_ADMIN_PASSWORD}
+    )
     assert response.status_code == 200
     return response.json()["access_token"]
 

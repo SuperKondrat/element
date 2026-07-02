@@ -19,6 +19,7 @@ from app.api.rpc.methods import METHOD_REGISTRY
 from app.auth.dependencies import resolve_admin_subject
 from app.auth.jwt import TokenError
 from app.config import Settings, get_settings
+from app.core.alerts import get_alert_notifier
 from app.db import get_db
 from app.services.exceptions import DomainError, InvalidCredentialsError
 
@@ -73,8 +74,9 @@ def _handle_call(db: Session, settings: Settings, token: str | None, call: Any) 
         return None if is_notification else _error(call_id, exc.code, exc.message, exc.data)
     except DomainError as exc:
         return None if is_notification else _error(call_id, code_for_domain_error(exc), str(exc))
-    except Exception:
+    except Exception as exc:
         logger.exception("rpc: необработанная ошибка метода %s", method_name)
+        get_alert_notifier().notify_error(source=f"rpc:{method_name}", detail=repr(exc))
         return None if is_notification else _error(call_id, INTERNAL_ERROR, "Внутренняя ошибка сервера")
 
     return None if is_notification else _success(call_id, _serialize(result))
