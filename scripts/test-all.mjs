@@ -38,11 +38,10 @@ function step(title) {
   console.log(`\n\x1b[36m== ${title} ==\x1b[0m`);
 }
 
-function run(command, args, { cwd = root, env = {}, omitEnv = [] } = {}) {
+function run(command, args, { cwd = root, env = {} } = {}) {
   const commandLine = [command, ...args].join(" ");
   console.log(`$ ${commandLine}`);
   const mergedEnv = { ...process.env, ...env };
-  for (const key of omitEnv) delete mergedEnv[key];
   // Полная команда одной строкой (а не command+args с shell:true) — так, как
   // рекомендует Node, чтобы не ловить DEP0190. Все аргументы здесь заданы
   // нами самими (фиксированные литералы), а не пользовательским вводом.
@@ -123,9 +122,9 @@ function runBackend() {
   run("uv", ["run", "pytest", "-q"], {
     cwd: `${root}backend`,
     env: backendDbEnv,
-    // conftest.py сам подставит тестовые дефолты для ADMIN_*/JWT_SECRET_KEY
-    // (admin123/test-secret-key) — если их не передавать явно.
-    omitEnv: ["ADMIN_USERNAME", "ADMIN_PASSWORD", "JWT_SECRET_KEY"],
+    // conftest.py сам жёстко проставляет тестовые ADMIN_*/JWT_SECRET_KEY
+    // (admin123/test-secret-key), независимо от того, что уже есть в env —
+    // значит, передавать их сюда или вычищать не нужно (см. tests/conftest.py).
   });
 }
 

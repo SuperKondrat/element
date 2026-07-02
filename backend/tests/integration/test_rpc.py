@@ -2,7 +2,7 @@ import base64
 
 from fastapi.testclient import TestClient
 
-from tests.helpers import build_feed_xml
+from tests.helpers import TEST_ADMIN_PASSWORD, TEST_ADMIN_USERNAME, build_feed_xml
 
 
 def _rpc(client: TestClient, method: str, params: dict | None = None, call_id: int | None = 1, **headers):
@@ -13,12 +13,12 @@ def _rpc(client: TestClient, method: str, params: dict | None = None, call_id: i
 
 
 def _login_rpc(client: TestClient) -> str:
-    response = _rpc(client, "auth.login", {"username": "admin", "password": "admin123"})
+    response = _rpc(client, "auth.login", {"username": TEST_ADMIN_USERNAME, "password": TEST_ADMIN_PASSWORD})
     return response.json()["result"]["access_token"]
 
 
 def test_rpc_login_success(client: TestClient):
-    response = _rpc(client, "auth.login", {"username": "admin", "password": "admin123"})
+    response = _rpc(client, "auth.login", {"username": TEST_ADMIN_USERNAME, "password": TEST_ADMIN_PASSWORD})
     assert response.status_code == 200
     body = response.json()
     assert body["jsonrpc"] == "2.0"

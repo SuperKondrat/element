@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
+from app.core.alerts import get_alert_notifier
 from app.services.exceptions import (
     DomainError,
     InvalidCredentialsError,
@@ -39,6 +40,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(Exception)
     async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
         logger.exception("Необработанная ошибка при обработке %s %s", request.method, request.url.path)
+        get_alert_notifier().notify_error(
+            source=f"{request.method} {request.url.path}",
+            detail=repr(exc),
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Внутренняя ошибка сервера"},

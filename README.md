@@ -28,7 +28,7 @@ npm test
 Скрипт сам поднимет `docker compose up -d db`, дождётся готовности БД и прогонит всё по очереди. Есть и раздельные команды: `npm run test:backend`, `npm run test:frontend`, `npm run test:e2e` (см. [scripts/test-all.mjs](scripts/test-all.mjs)).
 
 Три слоя:
-- **Backend (pytest, 59 тестов)** — `backend/tests/unit` (парсер фида, бизнес-правило брони, валидация контактов, фильтрация/сортировка лотов, заявки, активация наборов) и `backend/tests/integration` (REST- и RPC-API поверх реальной БД, включая auth и доменные ошибки). Отдельно: `cd backend && uv run pytest -v`.
+- **Backend (pytest, 64 теста)** — `backend/tests/unit` (парсер фида, бизнес-правило брони, валидация контактов, фильтрация/сортировка лотов, заявки, активация наборов, Telegram-алерты) и `backend/tests/integration` (REST- и RPC-API поверх реальной БД, включая auth и доменные ошибки). Отдельно: `cd backend && uv run pytest -v`.
 - **Frontend (vitest, 24 теста)** — `frontend/src/lib/*.test.ts`, чистая логика (маска телефона, валидация email/почты, форматирование). Отдельно: `cd frontend && npm run test`.
 - **E2E (Playwright, 5 сценариев)** — `e2e/tests/*.spec.ts`, полный путь через реальный браузер: логин в админку, загрузка и активация фида, бронирование лота с витрины, недоступность брони для непроданных лотов. Playwright сам поднимает backend (uvicorn) и frontend (vite) под тест. Отдельно: `cd e2e && npx playwright test` (нужен `docker compose up -d db` и накаченная схема — см. `npm run test:e2e`).
 
@@ -43,7 +43,7 @@ backend/app/
 ├── api/rest/      REST-роутеры — тонкий адаптер над services/
 ├── api/rpc/       JSON-RPC dispatcher — тот же тонкий адаптер
 ├── auth/          JWT против ADMIN_USERNAME/ADMIN_PASSWORD из конфига
-└── core/          логирование (JSON), обработка ошибок
+└── core/          логирование (JSON), обработка ошибок, алерты об ошибках (Telegram)
 ```
 
 Правило границ: `api/rest` и `api/rpc` только валидируют запрос, вызывают `services/` и сериализуют ответ. Бизнес-правила (например, «нельзя забронировать уже забронированный лот», `services/bookings.py`) существуют один раз и не дублируются между протоколами — каждый протокол сам решает, во что завернуть доменную ошибку (REST → HTTP-код, RPC → код `-32000…-32099`).
@@ -97,7 +97,7 @@ backend/app/
 
 | Файл | Git | Содержит |
 |---|---|---|
-| `.env` (из `.env.example`) | игнорируется | секреты пользователя: `POSTGRES_PASSWORD`, `ADMIN_USERNAME/PASSWORD`, `JWT_SECRET_KEY`, а также порты (`POSTGRES_PORT`, `BACKEND_PORT`, `FRONTEND_PORT`) |
+| `.env` (из `.env.example`) | игнорируется | секреты пользователя: `POSTGRES_PASSWORD`, `ADMIN_USERNAME/PASSWORD`, `JWT_SECRET_KEY`, порты (`POSTGRES_PORT`, `BACKEND_PORT`, `FRONTEND_PORT`), опционально `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` (алерты об ошибках, см. ниже) |
 | `config/app.env` | коммитится | техпараметры с осмысленными дефолтами: `POSTGRES_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `LOG_LEVEL`, `JWT_EXPIRE_MINUTES`, `CORS_ORIGINS`, `MAX_FEED_SIZE_MB` |
 
 Оба файла подключены в `docker-compose.yml` через `env_file: [config/app.env, .env]` у каждого сервиса — каждая переменная существует ровно в одном месте, `DATABASE_URL` нигде не хранится готовой строкой (`Settings` в `backend/app/config.py` собирает её на лету из частей: `HOST/PORT/USER/PASSWORD/DB`).
@@ -137,3 +137,4 @@ backend/app/
 - **Новая операция:** отмена брони (`services/bookings.py::cancel_booking`, `Booking.status → cancelled`, лот обратно в `for_sale`) — модель уже содержит нужный статус, добавляется один метод сервиса + REST-роут + RPC-метод по образцу существующих.
 - **Новый параметр конфигурации:** любое новое техническое значение — переменная в `config/app.env` + поле в `Settings` (`backend/app/config.py`); секрет — переменная в `.env.example`/`.env` по тому же принципу.
 - **Поле фида, которое сейчас игнорируется:** например, `renovation` (отделка) — есть в `element.xml`, не входит в модель п.3.2 ТЗ. Добавляется колонка в модель `Lot`, Alembic-миграция, строка в `services/feed_parser.py` (маппинг `_text(flat, "renovation")`), поле в `LotRead`-схеме — показывает границу «фид → модель» без домашней заготовки.
+- **Алерты об ошибках в Telegram:** `core/alerts.py::AlertNotifier` — единая точка для обоих протоколов (вызывается и из `core/errors.py::unhandled_error_handler`, и из `api/rpc/dispatcher.py` при необработанной ошибке метода). Без `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` в `.env` работает как заглушка — событие логируется. Как только секреты заданы, включается реальная отправка через Bot API (`urllib`, без новых зависимостей, HTTP-вызов — в отдельном потоке, чтобы не блокировать обработку запроса) — код и переменные окружения уже готовы, интеграция с реальным ботом не требует правок в вызывающих местах.

@@ -1,3 +1,11 @@
+# Единственный источник правды для тестовых admin-креденшелов — используются и
+# в conftest.py (переопределяют ADMIN_USERNAME/ADMIN_PASSWORD в окружении
+# процесса pytest), и в интеграционных тестах при логине. Так значение меняется
+# в одном месте и не может разъехаться с тем, что реально подставлено в env.
+TEST_ADMIN_USERNAME = "admin"
+TEST_ADMIN_PASSWORD = "admin123"
+
+
 def build_flat_xml(
     flat_id: str = "flat-1", status: str = "FREE", room: str = "2", area: str = "45.5"
 ) -> str:
