@@ -19,14 +19,18 @@ docker compose up --build
 
 ### Тесты
 
+Все тесты (backend + frontend + e2e) одной командой из корня репозитория:
+
 ```bash
-docker compose up -d db
-cd backend
-uv sync
-uv run pytest -v
+npm test
 ```
 
-39 тестов: `tests/unit` (парсер фида, бизнес-правило брони, валидация контактов), `tests/integration` (REST- и RPC-API поверх реальной БД, включая auth и доменные ошибки).
+Скрипт сам поднимет `docker compose up -d db`, дождётся готовности БД и прогонит всё по очереди. Есть и раздельные команды: `npm run test:backend`, `npm run test:frontend`, `npm run test:e2e` (см. [scripts/test-all.mjs](scripts/test-all.mjs)).
+
+Три слоя:
+- **Backend (pytest, 59 тестов)** — `backend/tests/unit` (парсер фида, бизнес-правило брони, валидация контактов, фильтрация/сортировка лотов, заявки, активация наборов) и `backend/tests/integration` (REST- и RPC-API поверх реальной БД, включая auth и доменные ошибки). Отдельно: `cd backend && uv run pytest -v`.
+- **Frontend (vitest, 24 теста)** — `frontend/src/lib/*.test.ts`, чистая логика (маска телефона, валидация email/почты, форматирование). Отдельно: `cd frontend && npm run test`.
+- **E2E (Playwright, 5 сценариев)** — `e2e/tests/*.spec.ts`, полный путь через реальный браузер: логин в админку, загрузка и активация фида, бронирование лота с витрины, недоступность брони для непроданных лотов. Playwright сам поднимает backend (uvicorn) и frontend (vite) под тест. Отдельно: `cd e2e && npx playwright test` (нужен `docker compose up -d db` и накаченная схема — см. `npm run test:e2e`).
 
 ## Устройство
 

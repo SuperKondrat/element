@@ -1,0 +1,11 @@
+{
+  "name": "element",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "test": "node scripts/test-all.mjs all",
+    "test:backend": "node scripts/test-all.mjs backend",
+    "test:frontend": "node scripts/test-all.mjs frontend",
+    "test:e2e": "node scripts/test-all.mjs e2e"
+  }
+}

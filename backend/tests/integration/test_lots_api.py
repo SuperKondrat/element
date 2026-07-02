@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from tests.helpers import build_feed_xml, build_flat_xml
@@ -92,4 +93,21 @@ def test_full_public_flow(client: TestClient):
 
 def test_booking_requires_phone_or_email(client: TestClient):
     response = client.post("/api/bookings", json={"lot_id": 1, "contact_name": "Иван"})
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "bad_params",
+    [
+        {"page_size": 101},  # выше верхней границы Field(le=100)
+        {"page_size": 0},  # ниже нижней границы Field(ge=1)
+        {"page": 0},  # ниже нижней границы Field(ge=1)
+        {"sort_by": "not_a_field"},  # не входит в SortField
+        {"status": "not_a_status"},  # не входит в LotStatus
+    ],
+)
+def test_lots_list_rejects_invalid_filters_with_422(client: TestClient, bad_params: dict):
+    """Регрессия на fc432a3: раньше LotFilter пересобирался вручную и
+    ValidationError улетал в общий exception handler как 500 вместо 422."""
+    response = client.get("/api/lots", params=bad_params)
     assert response.status_code == 422
